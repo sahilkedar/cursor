@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineRate - IMDb-Style Movie Explorer</title>
+    <style>
+      :root {
+        --bg: #0f1116;
+        --panel: #1b1f2a;
+        --panel-muted: #202636;
+        --text: #edf1f7;
+        --muted: #9aa5bd;
+        --accent: #f5c518;
+        --danger: #f05353;
+        --ok: #1ac58b;
+        --border: #2a3146;
+        --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: radial-gradient(circle at top, #182038 0%, var(--bg) 40%);
+        color: var(--text);
+      }
+
+      .app-shell {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 22px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+      }
+
+      .brand-badge {
+        background: var(--accent);
+        color: #111;
+        font-weight: 800;
+        border-radius: 8px;
+        padding: 6px 10px;
+        line-height: 1;
+      }
+
+      .brand-text {
+        font-weight: 700;
+        color: var(--text);
+        letter-spacing: 0.2px;
+      }
+
+      .watchlist-pill {
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .hero {
+        background: linear-gradient(
+          115deg,
+          rgba(245, 197, 24, 0.2),
+          rgba(51, 72, 145, 0.28)
+        );
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 22px;
+        margin-bottom: 18px;
+      }
+
+      .hero-title {
+        margin: 0 0 6px;
+        font-size: clamp(1.3rem, 2vw, 1.8rem);
+      }
+
+      .hero-subtitle {
+        margin: 0;
+        color: var(--muted);
+        max-width: 65ch;
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: 1.6fr repeat(3, minmax(140px, 1fr));
+        gap: 10px;
+        margin: 20px 0 10px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .field label {
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .field input,
+      .field select {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--panel);
+        color: var(--text);
+        padding: 10px 11px;
+        font-size: 0.95rem;
+      }
+
+      .field input[type="range"] {
+        padding: 0;
+        accent-color: var(--accent);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin: 10px 0 18px;
+      }
+
+      .stat {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+      }
+
+      .stat-label {
+        color: var(--muted);
+        font-size: 0.83rem;
+      }
+
+      .stat-value {
+        margin-top: 4px;
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      .section-title {
+        margin: 22px 0 10px;
+        font-size: 1.08rem;
+      }
+
+      .top-picks {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      }
+
+      .pick {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        background: linear-gradient(160deg, #202737, #191f2f);
+        cursor: pointer;
+      }
+
+      .pick:hover {
+        border-color: #45557f;
+      }
+
+      .pick small {
+        color: var(--muted);
+      }
+
+      .movie-grid {
+        margin-top: 8px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 14px;
+      }
+
+      .movie-card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--panel);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 320px;
+        box-shadow: var(--shadow);
+        transition: transform 120ms ease, border-color 120ms ease;
+      }
+
+      .movie-card:hover {
+        transform: translateY(-2px);
+        border-color: #516494;
+      }
+
+      .poster {
+        height: 130px;
+        background: linear-gradient(120deg, var(--poster-a), var(--poster-b));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        letter-spacing: 2px;
+        font-size: 2rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .movie-content {
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        gap: 10px;
+      }
+
+      .movie-title {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .chip {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 0.75rem;
+        color: #d3dcf0;
+      }
+
+      .rating-row {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .rating {
+        font-weight: 700;
+      }
+
+      .rating .star {
+        color: var(--accent);
+        margin-right: 2px;
+      }
+
+      .votes {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .card-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      button {
+        border: none;
+        cursor: pointer;
+        font: inherit;
+      }
+
+      .btn {
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
+
+      .btn-muted {
+        background: #2a334a;
+        color: #d8e0f3;
+      }
+
+      .btn-muted:hover {
+        filter: brightness(1.08);
+      }
+
+      .btn-accent {
+        background: var(--accent);
+        color: #171717;
+        font-weight: 700;
+      }
+
+      .btn-watch.added {
+        background: rgba(26, 197, 139, 0.16);
+        color: var(--ok);
+        border: 1px solid rgba(26, 197, 139, 0.35);
+      }
+
+      .empty {
+        border: 1px dashed #44506d;
+        border-radius: 12px;
+        padding: 18px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        display: none;
+        background: rgba(6, 9, 15, 0.72);
+        padding: 18px;
+      }
+
+      .modal-backdrop.open {
+        display: grid;
+        place-items: center;
+      }
+
+      .modal {
+        width: min(720px, 100%);
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #121824;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+      }
+
+      .modal-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+      }
+
+      .modal-header h3 {
+        margin: 0 0 4px;
+      }
+
+      .modal-header p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .close {
+        background: transparent;
+        color: #cfd6e8;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        width: 34px;
+        height: 34px;
+        font-size: 1.1rem;
+      }
+
+      .modal-body {
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .modal-kv {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 8px;
+      }
+
+      .modal-kv .key {
+        color: var(--muted);
+      }
+
+      .footer {
+        margin: 26px 0 10px;
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-align: center;
+      }
+
+      @media (max-width: 860px) {
+        .toolbar {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .toolbar,
+        .stats {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#">
+          <span class="brand-badge">IMDb</span>
+          <span class="brand-text">CineRate Explorer</span>
+        </a>
+        <div class="watchlist-pill">
+          Watchlist: <strong id="watchlist-count">0</strong>
+        </div>
+      </header>
+
+      <section class="hero">
+        <h1 class="hero-title">Discover movies, ratings, and cast details</h1>
+        <p class="hero-subtitle">
+          A lightweight IMDb-style experience built in plain HTML, CSS, and
+          JavaScript. Search by title, filter by genre, sort by rating or year,
+          and save titles to your watchlist.
+        </p>
+      </section>
+
+      <section class="toolbar" aria-label="Search and filters">
+        <div class="field">
+          <label for="search">Search titles, plot, cast</label>
+          <input
+            id="search"
+            type="search"
+            placeholder="Try: detective, sci-fi, phoenix..."
+          />
+        </div>
+
+        <div class="field">
+          <label for="genre">Genre</label>
+          <select id="genre"></select>
+        </div>
+
+        <div class="field">
+          <label for="sort">Sort by</label>
+          <select id="sort">
+            <option value="trending">Trending (votes)</option>
+            <option value="rating">Highest rating</option>
+            <option value="year">Newest release</option>
+            <option value="title">Title A-Z</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="min-rating"
+            >Minimum rating: <span id="min-rating-value">0.0</span></label
+          >
+          <input id="min-rating" type="range" min="0" max="10" step="0.1" />
+        </div>
+      </section>
+
+      <section class="stats">
+        <article class="stat">
+          <div class="stat-label">Movies shown</div>
+          <div class="stat-value" id="stat-shown">0</div>
+        </article>
+        <article class="stat">
+          <div class="stat-label">Average rating</div>
+          <div class="stat-value" id="stat-average">0.0</div>
+        </article>
+        <article class="stat">
+          <div class="stat-label">Top genre</div>
+          <div class="stat-value" id="stat-genre">-</div>
+        </article>
+      </section>
+
+      <h2 class="section-title">Top picks this week</h2>
+      <section class="top-picks" id="top-picks"></section>
+
+      <h2 class="section-title">Browse all titles</h2>
+      <section class="movie-grid" id="movie-grid"></section>
+
+      <p class="footer">
+        CineRate Explorer | Built on <span id="year"></span> with vanilla web
+        technologies.
+      </p>
+    </main>
+
+    <div class="modal-backdrop" id="modal-backdrop" aria-hidden="true">
+      <article class="modal" role="dialog" aria-modal="true">
+        <header class="modal-header">
+          <div>
+            <h3 id="modal-title"></h3>
+            <p id="modal-meta"></p>
+          </div>
+          <button class="close" id="close-modal" aria-label="Close">x</button>
+        </header>
+        <section class="modal-body">
+          <p id="modal-plot"></p>
+          <div class="modal-kv">
+            <span class="key">Director</span>
+            <span id="modal-director"></span>
+          </div>
+          <div class="modal-kv">
+            <span class="key">Cast</span>
+            <span id="modal-cast"></span>
+          </div>
+          <div class="modal-kv">
+            <span class="key">Language</span>
+            <span id="modal-language"></span>
+          </div>
+          <div class="modal-kv">
+            <span class="key">Runtime</span>
+            <span id="modal-runtime"></span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-accent btn-watch" id="modal-watch-btn">
+              Add to Watchlist
+            </button>
+            <button class="btn btn-muted" id="modal-close-btn">Close</button>
+          </div>
+        </section>
+      </article>
+    </div>
+
+    <script>
+      const movies = [
+        {
+          id: "tt1021",
+          title: "The Last Harbor",
+          year: 2021,
+          rating: 8.1,
+          votes: 287122,
+          runtime: "2h 9m",
+          genres: ["Drama", "Mystery"],
+          plot: "A harbor town detective uncovers a thirty-year conspiracy while investigating a vanished cargo ship.",
+          director: "Leah Morton",
+          cast: ["Adrian Cole", "Maya Yoon", "Jonas Pike"],
+          language: "English"
+        },
+        {
+          id: "tt1088",
+          title: "Neon Pursuit",
+          year: 2024,
+          rating: 7.8,
+          votes: 401993,
+          runtime: "1h 56m",
+          genres: ["Action", "Sci-Fi"],
+          plot: "In a hyperconnected city, a courier races against an AI network to deliver a memory chip that can reset the system.",
+          director: "Kira Das",
+          cast: ["Rafi Beck", "Tessa Bloom", "Victor Hale"],
+          language: "English"
+        },
+        {
+          id: "tt1137",
+          title: "Ivory Skyline",
+          year: 2019,
+          rating: 8.5,
+          votes: 508875,
+          runtime: "2h 14m",
+          genres: ["Crime", "Thriller"],
+          plot: "Two rival journalists expose corruption inside a city rebuilding project after a suspicious bridge collapse.",
+          director: "Marco Ren",
+          cast: ["Nina Suarez", "Caleb Rowe", "Samir Grant"],
+          language: "English"
+        },
+        {
+          id: "tt1174",
+          title: "Moonlit Orchard",
+          year: 2018,
+          rating: 7.6,
+          votes: 164283,
+          runtime: "1h 48m",
+          genres: ["Romance", "Drama"],
+          plot: "A chef returns to her hometown and rediscovers family secrets hidden within the orchard she left behind.",
+          director: "Daria Flint",
+          cast: ["Lina Park", "Theo Marsh", "Elena Ward"],
+          language: "English"
+        },
+        {
+          id: "tt1215",
+          title: "Iron Horizon",
+          year: 2025,
+          rating: 8.7,
+          votes: 642551,
+          runtime: "2h 21m",
+          genres: ["Adventure", "Sci-Fi"],
+          plot: "A deep-space repair crew discovers an abandoned station broadcasting a signal from the future.",
+          director: "Soren Vale",
+          cast: ["Milo Rivers", "Anais Cruz", "Grant Okoye"],
+          language: "English"
+        },
+        {
+          id: "tt1290",
+          title: "Glass District",
+          year: 2020,
+          rating: 7.9,
+          votes: 221930,
+          runtime: "2h 2m",
+          genres: ["Crime", "Drama"],
+          plot: "A former hacker must decode encrypted evidence before a wrongful conviction becomes permanent.",
+          director: "Peter Nadeem",
+          cast: ["Rae Kim", "Diego Finch", "Noor Patel"],
+          language: "English"
+        },
+        {
+          id: "tt1308",
+          title: "Signal at Dawn",
+          year: 2017,
+          rating: 8.3,
+          votes: 387014,
+          runtime: "2h 5m",
+          genres: ["War", "Drama"],
+          plot: "A radio unit behind enemy lines transmits coded messages that alter the course of a major campaign.",
+          director: "Marta Ionescu",
+          cast: ["Ilya Gray", "Naomi Trent", "Lucas Reeve"],
+          language: "English"
+        },
+        {
+          id: "tt1332",
+          title: "The Quiet Algorithm",
+          year: 2023,
+          rating: 8.0,
+          votes: 305581,
+          runtime: "1h 52m",
+          genres: ["Thriller", "Mystery"],
+          plot: "A reclusive mathematician realizes her predictive model is being used to target political dissidents.",
+          director: "Helena Brooks",
+          cast: ["Eva Landon", "Kian Frost", "Mara Keene"],
+          language: "English"
+        },
+        {
+          id: "tt1403",
+          title: "Echoes of Winter",
+          year: 2022,
+          rating: 7.7,
+          votes: 192407,
+          runtime: "2h 1m",
+          genres: ["Drama", "History"],
+          plot: "An archivist restores wartime diaries and uncovers a hidden rescue network that history forgot.",
+          director: "Julian Price",
+          cast: ["Hannah Lowe", "Ethan Burke", "Ari Khan"],
+          language: "English"
+        },
+        {
+          id: "tt1430",
+          title: "Velocity Code",
+          year: 2026,
+          rating: 8.4,
+          votes: 520001,
+          runtime: "2h 7m",
+          genres: ["Action", "Thriller"],
+          plot: "An ex-racer and a cryptographer chase a stolen satellite key through three continents in forty-eight hours.",
+          director: "Renata Solis",
+          cast: ["Kai Mercer", "Jules Ortega", "Sami Norr"],
+          language: "English"
+        },
+        {
+          id: "tt1497",
+          title: "Crimson Ledger",
+          year: 2016,
+          rating: 7.5,
+          votes: 129221,
+          runtime: "1h 44m",
+          genres: ["Mystery", "Crime"],
+          plot: "A forensic accountant follows a trail of redacted bank transfers linked to a minister's disappearance.",
+          director: "Owen Falk",
+          cast: ["Mina Shore", "Declan West", "June Osei"],
+          language: "English"
+        },
+        {
+          id: "tt1520",
+          title: "Paper Planets",
+          year: 2015,
+          rating: 8.2,
+          votes: 333405,
+          runtime: "2h 10m",
+          genres: ["Family", "Adventure"],
+          plot: "Two siblings build a homemade observatory and begin receiving patterned signals no one else can hear.",
+          director: "Luca Mendes",
+          cast: ["Piper Dean", "Will Arman", "Sara Niles"],
+          language: "English"
+        }
+      ];
+
+      const watchlistStorageKey = "cinerate-watchlist";
+      const state = {
+        query: "",
+        genre: "All",
+        sort: "trending",
+        minRating: 0,
+        selectedId: null,
+        watchlist: new Set(loadWatchlist())
+      };
+
+      const els = {
+        search: document.getElementById("search"),
+        genre: document.getElementById("genre"),
+        sort: document.getElementById("sort"),
+        minRating: document.getElementById("min-rating"),
+        minRatingValue: document.getElementById("min-rating-value"),
+        movieGrid: document.getElementById("movie-grid"),
+        topPicks: document.getElementById("top-picks"),
+        shown: document.getElementById("stat-shown"),
+        average: document.getElementById("stat-average"),
+        topGenre: document.getElementById("stat-genre"),
+        watchlistCount: document.getElementById("watchlist-count"),
+        modalBackdrop: document.getElementById("modal-backdrop"),
+        closeModal: document.getElementById("close-modal"),
+        modalCloseBtn: document.getElementById("modal-close-btn"),
+        modalTitle: document.getElementById("modal-title"),
+        modalMeta: document.getElementById("modal-meta"),
+        modalPlot: document.getElementById("modal-plot"),
+        modalDirector: document.getElementById("modal-director"),
+        modalCast: document.getElementById("modal-cast"),
+        modalLanguage: document.getElementById("modal-language"),
+        modalRuntime: document.getElementById("modal-runtime"),
+        modalWatchBtn: document.getElementById("modal-watch-btn")
+      };
+
+      function loadWatchlist() {
+        try {
+          const raw = localStorage.getItem(watchlistStorageKey);
+          return raw ? JSON.parse(raw) : [];
+        } catch (_error) {
+          return [];
+        }
+      }
+
+      function saveWatchlist() {
+        localStorage.setItem(
+          watchlistStorageKey,
+          JSON.stringify(Array.from(state.watchlist))
+        );
+      }
+
+      function formatVotes(votes) {
+        return votes >= 1000000
+          ? `${(votes / 1000000).toFixed(1)}M`
+          : `${(votes / 1000).toFixed(0)}K`;
+      }
+
+      function pickPosterColors(seed) {
+        const palette = [
+          ["#37538a", "#933f8d"],
+          ["#35695c", "#8f7e2e"],
+          ["#694364", "#3a7f94"],
+          ["#764d2a", "#6f2e6b"],
+          ["#3f4a7c", "#206060"],
+          ["#6b2f3d", "#3b6f30"]
+        ];
+        let hash = 0;
+        for (let i = 0; i < seed.length; i += 1) {
+          hash = (hash << 5) - hash + seed.charCodeAt(i);
+          hash |= 0;
+        }
+        return palette[Math.abs(hash) % palette.length];
+      }
+
+      function getFilteredMovies() {
+        let filtered = movies.filter((movie) => {
+          const normalized = state.query.toLowerCase();
+          const searchable = `${movie.title} ${movie.plot} ${movie.cast.join(" ")}`.toLowerCase();
+          const matchesSearch =
+            !normalized || searchable.includes(normalized);
+          const matchesGenre =
+            state.genre === "All" || movie.genres.includes(state.genre);
+          const matchesRating = movie.rating >= state.minRating;
+          return matchesSearch && matchesGenre && matchesRating;
+        });
+
+        filtered = filtered.sort((a, b) => {
+          if (state.sort === "rating") return b.rating - a.rating;
+          if (state.sort === "year") return b.year - a.year;
+          if (state.sort === "title") return a.title.localeCompare(b.title);
+          return b.votes - a.votes;
+        });
+
+        return filtered;
+      }
+
+      function renderStats(movieList) {
+        els.shown.textContent = movieList.length;
+        const avg =
+          movieList.reduce((sum, item) => sum + item.rating, 0) /
+          (movieList.length || 1);
+        els.average.textContent = avg.toFixed(1);
+
+        const genreCounts = new Map();
+        movieList.forEach((movie) => {
+          movie.genres.forEach((genre) => {
+            genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
+          });
+        });
+
+        const topGenre = [...genreCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+        els.topGenre.textContent = topGenre ? topGenre[0] : "-";
+      }
+
+      function renderTopPicks() {
+        const picks = [...movies].sort((a, b) => b.rating - a.rating).slice(0, 4);
+        els.topPicks.innerHTML = picks
+          .map(
+            (movie) => `
+            <button class="pick" data-id="${movie.id}" type="button">
+              <strong>${movie.title}</strong><br />
+              <small>${movie.year} - ${movie.genres.join(" / ")}</small>
+              <div class="rating"><span class="star">★</span>${movie.rating.toFixed(1)}</div>
+            </button>
+          `
+          )
+          .join("");
+      }
+
+      function renderMovies() {
+        const filtered = getFilteredMovies();
+        renderStats(filtered);
+        els.watchlistCount.textContent = state.watchlist.size;
+
+        if (!filtered.length) {
+          els.movieGrid.innerHTML =
+            '<div class="empty">No movies match your filters. Try lowering minimum rating or clearing your search.</div>';
+          return;
+        }
+
+        els.movieGrid.innerHTML = filtered
+          .map((movie) => {
+            const [a, b] = pickPosterColors(movie.title);
+            const watchAdded = state.watchlist.has(movie.id);
+            return `
+              <article class="movie-card">
+                <button class="poster" style="--poster-a:${a};--poster-b:${b}" data-open-id="${movie.id}">
+                  ${movie.title.slice(0, 1).toUpperCase()}
+                </button>
+                <section class="movie-content">
+                  <h3 class="movie-title">${movie.title}</h3>
+                  <div class="meta">${movie.year} - ${movie.runtime}</div>
+                  <div class="chips">
+                    ${movie.genres.map((genre) => `<span class="chip">${genre}</span>`).join("")}
+                  </div>
+                  <div class="rating-row">
+                    <div>
+                      <div class="rating"><span class="star">★</span>${movie.rating.toFixed(1)}/10</div>
+                      <div class="votes">${formatVotes(movie.votes)} votes</div>
+                    </div>
+                    <div class="card-actions">
+                      <button class="btn btn-muted" data-open-id="${movie.id}">Details</button>
+                      <button class="btn btn-watch ${watchAdded ? "added" : "btn-accent"}" data-watch-id="${movie.id}">
+                        ${watchAdded ? "Saved" : "Watchlist"}
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              </article>
+            `;
+          })
+          .join("");
+      }
+
+      function openModal(movieId) {
+        const movie = movies.find((item) => item.id === movieId);
+        if (!movie) return;
+        state.selectedId = movieId;
+        els.modalTitle.textContent = movie.title;
+        els.modalMeta.textContent = `${movie.year} - ${movie.genres.join(
+          ", "
+        )} - ★ ${movie.rating.toFixed(1)} (${formatVotes(movie.votes)} votes)`;
+        els.modalPlot.textContent = movie.plot;
+        els.modalDirector.textContent = movie.director;
+        els.modalCast.textContent = movie.cast.join(", ");
+        els.modalLanguage.textContent = movie.language;
+        els.modalRuntime.textContent = movie.runtime;
+        syncModalWatchBtn();
+        els.modalBackdrop.classList.add("open");
+        els.modalBackdrop.setAttribute("aria-hidden", "false");
+      }
+
+      function closeModal() {
+        state.selectedId = null;
+        els.modalBackdrop.classList.remove("open");
+        els.modalBackdrop.setAttribute("aria-hidden", "true");
+      }
+
+      function toggleWatchlist(movieId) {
+        if (state.watchlist.has(movieId)) {
+          state.watchlist.delete(movieId);
+        } else {
+          state.watchlist.add(movieId);
+        }
+        saveWatchlist();
+        syncModalWatchBtn();
+        renderMovies();
+      }
+
+      function syncModalWatchBtn() {
+        if (!state.selectedId) return;
+        const isSaved = state.watchlist.has(state.selectedId);
+        els.modalWatchBtn.textContent = isSaved
+          ? "Remove from Watchlist"
+          : "Add to Watchlist";
+        els.modalWatchBtn.className = `btn btn-watch ${isSaved ? "added" : "btn-accent"}`;
+      }
+
+      function initControls() {
+        const uniqueGenres = Array.from(
+          new Set(movies.flatMap((movie) => movie.genres))
+        ).sort();
+
+        els.genre.innerHTML = ["All", ...uniqueGenres]
+          .map((genre) => `<option value="${genre}">${genre}</option>`)
+          .join("");
+
+        els.minRating.value = "0";
+        els.minRatingValue.textContent = "0.0";
+
+        els.search.addEventListener("input", (event) => {
+          state.query = event.target.value.trim();
+          renderMovies();
+        });
+
+        els.genre.addEventListener("change", (event) => {
+          state.genre = event.target.value;
+          renderMovies();
+        });
+
+        els.sort.addEventListener("change", (event) => {
+          state.sort = event.target.value;
+          renderMovies();
+        });
+
+        els.minRating.addEventListener("input", (event) => {
+          const value = Number(event.target.value);
+          state.minRating = value;
+          els.minRatingValue.textContent = value.toFixed(1);
+          renderMovies();
+        });
+
+        els.movieGrid.addEventListener("click", (event) => {
+          const watchBtn = event.target.closest("[data-watch-id]");
+          if (watchBtn) {
+            toggleWatchlist(watchBtn.dataset.watchId);
+            return;
+          }
+
+          const openTarget = event.target.closest("[data-open-id]");
+          if (openTarget) {
+            openModal(openTarget.dataset.openId);
+          }
+        });
+
+        els.topPicks.addEventListener("click", (event) => {
+          const pick = event.target.closest("[data-id]");
+          if (pick) openModal(pick.dataset.id);
+        });
+
+        els.closeModal.addEventListener("click", closeModal);
+        els.modalCloseBtn.addEventListener("click", closeModal);
+        els.modalBackdrop.addEventListener("click", (event) => {
+          if (event.target === els.modalBackdrop) closeModal();
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeModal();
+        });
+
+        els.modalWatchBtn.addEventListener("click", () => {
+          if (state.selectedId) toggleWatchlist(state.selectedId);
+        });
+      }
+
+      function init() {
+        document.getElementById("year").textContent = new Date().getFullYear();
+        initControls();
+        renderTopPicks();
+        renderMovies();
+      }
+
+      init();
+    </script>
+  </body>
+</html>
