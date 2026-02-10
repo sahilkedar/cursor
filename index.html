@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CineBase - Movie discovery</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <div class="logo">CB</div>
+        <div>
+          <p class="brand-title">CineBase</p>
+          <p class="brand-subtitle">Movie ratings, lists, and discovery</p>
+        </div>
+      </div>
+      <nav class="site-nav">
+        <a href="#featured">Featured</a>
+        <a href="#top-rated">Top Rated</a>
+        <a href="#trending">Trending</a>
+        <a href="#watchlist">Watchlist</a>
+      </nav>
+      <div class="search">
+        <label class="sr-only" for="searchInput">Search movies</label>
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Search titles, cast, or keywords"
+          autocomplete="off"
+        />
+        <button id="clearSearch" type="button">Clear</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-text">
+          <p class="eyebrow">Featured this week</p>
+          <h1 id="heroTitle">Loading feature</h1>
+          <p id="heroMeta" class="meta">Loading details</p>
+          <p id="heroDescription" class="hero-description">
+            Curated picks, ratings, and cast highlights. Find your next movie.
+          </p>
+          <div class="hero-actions">
+            <button id="playTrailer" type="button">Play trailer</button>
+            <button id="heroWatchlist" type="button" class="secondary">
+              Add to watchlist
+            </button>
+          </div>
+          <div id="heroStats" class="hero-stats"></div>
+        </div>
+        <div class="hero-card">
+          <div id="heroPoster" class="poster hero-poster">
+            <span>Feature</span>
+          </div>
+          <div class="hero-card-info">
+            <p id="heroTagline">Now trending</p>
+            <p id="heroCast" class="meta">Cast loading</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls">
+        <div>
+          <label for="genreFilter">Genre</label>
+          <select id="genreFilter"></select>
+        </div>
+        <div>
+          <label for="minRating">Min rating</label>
+          <select id="minRating">
+            <option value="0">Any</option>
+            <option value="7">7.0+</option>
+            <option value="8">8.0+</option>
+            <option value="9">9.0+</option>
+          </select>
+        </div>
+        <div>
+          <label for="sortBy">Sort by</label>
+          <select id="sortBy">
+            <option value="featured">Featured</option>
+            <option value="rating">Rating</option>
+            <option value="year">Year</option>
+            <option value="runtime">Runtime</option>
+          </select>
+        </div>
+        <div class="results">
+          <span id="resultsCount">0</span> results
+        </div>
+      </section>
+
+      <section id="featured" class="section">
+        <div class="section-header">
+          <h2>Featured picks</h2>
+          <p>Editorial highlights and crowd favorites.</p>
+        </div>
+        <div id="featuredGrid" class="grid"></div>
+      </section>
+
+      <section id="top-rated" class="section">
+        <div class="section-header">
+          <h2>Top rated</h2>
+          <p>Highest rated titles across genres.</p>
+        </div>
+        <ol id="topRatedList" class="top-list"></ol>
+      </section>
+
+      <section id="trending" class="section">
+        <div class="section-header">
+          <h2>Trending now</h2>
+          <p>Buzzing movies from the last 30 days.</p>
+        </div>
+        <div id="trendingRow" class="row"></div>
+      </section>
+
+      <section id="watchlist" class="section">
+        <div class="section-header">
+          <h2>Your watchlist</h2>
+          <p>Save titles to keep track of what to watch next.</p>
+        </div>
+        <div id="watchlistGrid" class="grid">
+          <p class="empty">Your watchlist is empty. Add some movies.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>CineBase is a demo inspired by movie databases like IMDB.</p>
+      <p>Built with plain HTML, CSS, and JavaScript.</p>
+    </footer>
+
+    <dialog id="detailsDialog">
+      <div class="dialog-header">
+        <h3 id="dialogTitle">Movie details</h3>
+        <button id="closeDialog" type="button">Close</button>
+      </div>
+      <div id="dialogContent" class="dialog-content"></div>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
