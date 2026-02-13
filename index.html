@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IMDb-style App | Live DB Connected</title>
+    <style>
+      :root {
+        --bg: #0f1116;
+        --panel: #171c28;
+        --panel-alt: #1c2333;
+        --text: #e8edf9;
+        --muted: #9ba6be;
+        --accent: #f5c518;
+        --ok: #2cce8c;
+        --border: #2b3550;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(circle at top, #1b2748 0%, var(--bg) 40%);
+        color: var(--text);
+        font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      }
+
+      .app-shell {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 22px;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .brand-badge {
+        background: var(--accent);
+        color: #101010;
+        border-radius: 7px;
+        font-weight: 800;
+        padding: 6px 9px;
+      }
+
+      .brand-name {
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+
+      .sync-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 8px 12px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #8191ad;
+      }
+
+      .dot.ok {
+        background: var(--ok);
+      }
+
+      .hero {
+        background: linear-gradient(
+          130deg,
+          rgba(245, 197, 24, 0.22),
+          rgba(64, 88, 176, 0.28)
+        );
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 18px;
+        margin-bottom: 16px;
+      }
+
+      .hero h1 {
+        margin: 0 0 7px;
+        font-size: clamp(1.3rem, 2.2vw, 1.8rem);
+      }
+
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr 1fr auto;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .field label {
+        color: var(--muted);
+        font-size: 0.83rem;
+      }
+
+      .field input,
+      .field select {
+        width: 100%;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+      }
+
+      .button {
+        border: 0;
+        border-radius: 10px;
+        padding: 11px 12px;
+        background: var(--accent);
+        color: #181818;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .button:hover {
+        filter: brightness(1.05);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .stat {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--panel);
+        padding: 12px;
+      }
+
+      .stat .label {
+        color: var(--muted);
+        font-size: 0.83rem;
+      }
+
+      .stat .value {
+        margin-top: 5px;
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      .movie-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 14px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--panel);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .poster {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        background: var(--panel-alt);
+      }
+
+      .card-body {
+        padding: 12px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .title-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 1.02rem;
+      }
+
+      .rating {
+        white-space: nowrap;
+        font-weight: 700;
+      }
+
+      .star {
+        color: var(--accent);
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .chip {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 0.76rem;
+        padding: 3px 8px;
+        color: #d2def5;
+      }
+
+      .description {
+        color: #dce5f8;
+        font-size: 0.92rem;
+        line-height: 1.35;
+        min-height: 62px;
+      }
+
+      .card-actions {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .link-btn {
+        border: 1px solid var(--border);
+        background: var(--panel-alt);
+        color: var(--text);
+        padding: 8px 10px;
+        border-radius: 9px;
+        cursor: pointer;
+      }
+
+      .empty {
+        border: 1px dashed #415173;
+        border-radius: 12px;
+        color: var(--muted);
+        padding: 16px;
+      }
+
+      .modal-wrap {
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 8, 12, 0.75);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+
+      .modal-wrap.open {
+        display: flex;
+      }
+
+      .modal {
+        width: min(860px, 100%);
+        max-height: 90vh;
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #121824;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .modal-header h2 {
+        margin: 0;
+        font-size: 1.15rem;
+      }
+
+      .modal-content {
+        padding: 16px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .kv {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 8px;
+      }
+
+      .k {
+        color: var(--muted);
+      }
+
+      pre {
+        margin: 0;
+        background: #0f1420;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px;
+        overflow: auto;
+        white-space: pre-wrap;
+        color: #cfe0ff;
+        font-size: 0.81rem;
+      }
+
+      .footer {
+        margin-top: 20px;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 760px) {
+        .controls,
+        .stats {
+          grid-template-columns: 1fr;
+        }
+
+        .kv {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-badge">IMDb</span>
+          <span class="brand-name">Connected Movie Explorer</span>
+        </div>
+        <div class="sync-pill">
+          <span class="dot" id="sync-dot"></span>
+          <span id="sync-status">Waiting for first sync...</span>
+        </div>
+      </header>
+
+      <section class="hero">
+        <h1>Live database-backed movie content</h1>
+        <p>
+          Data is loaded from SQLite through `/api/content` and auto-refreshes
+          every 10 seconds. If you edit the DB object, this UI will reflect it.
+        </p>
+      </section>
+
+      <section class="controls">
+        <div class="field">
+          <label for="search">Search title/plot/cast</label>
+          <input id="search" type="search" placeholder="Try: Ethan, AI, IMF..." />
+        </div>
+        <div class="field">
+          <label for="genre">Genre</label>
+          <select id="genre"></select>
+        </div>
+        <div class="field">
+          <label for="min-rating">Minimum IMDb rating</label>
+          <input id="min-rating" type="number" min="0" max="10" step="0.1" value="0" />
+        </div>
+        <button class="button" id="refresh-now" type="button">Refresh now</button>
+      </section>
+
+      <section class="stats">
+        <article class="stat">
+          <div class="label">Titles loaded</div>
+          <div class="value" id="stat-count">0</div>
+        </article>
+        <article class="stat">
+          <div class="label">Average IMDb score</div>
+          <div class="value" id="stat-avg">0.0</div>
+        </article>
+        <article class="stat">
+          <div class="label">Last sync</div>
+          <div class="value" id="stat-sync">never</div>
+        </article>
+      </section>
+
+      <section class="movie-grid" id="movie-grid"></section>
+
+      <p class="footer">
+        API endpoint: <code>/api/content</code> | DB file:
+        <code>data/imdb.db</code>
+      </p>
+    </main>
+
+    <div class="modal-wrap" id="modal-wrap" aria-hidden="true">
+      <article class="modal" role="dialog" aria-modal="true">
+        <header class="modal-header">
+          <h2 id="modal-title"></h2>
+          <button class="link-btn" id="close-modal" type="button">Close</button>
+        </header>
+        <section class="modal-content">
+          <div class="kv">
+            <span class="k">Director</span>
+            <span id="modal-director"></span>
+          </div>
+          <div class="kv">
+            <span class="k">Cast</span>
+            <span id="modal-cast"></span>
+          </div>
+          <div class="kv">
+            <span class="k">Runtime</span>
+            <span id="modal-runtime"></span>
+          </div>
+          <div class="kv">
+            <span class="k">Languages</span>
+            <span id="modal-languages"></span>
+          </div>
+          <div class="kv">
+            <span class="k">Awards</span>
+            <span id="modal-awards"></span>
+          </div>
+          <div class="kv">
+            <span class="k">Raw JSON object</span>
+            <pre id="modal-raw"></pre>
+          </div>
+        </section>
+      </article>
+    </div>
+
+    <script>
+      const state = {
+        rawItems: [],
+        viewItems: [],
+        filteredItems: [],
+        query: "",
+        genre: "All",
+        minRating: 0,
+        selectedId: null,
+        lastSyncMs: null,
+        lastSerialized: ""
+      };
+
+      const els = {
+        search: document.getElementById("search"),
+        genre: document.getElementById("genre"),
+        minRating: document.getElementById("min-rating"),
+        refreshNow: document.getElementById("refresh-now"),
+        syncDot: document.getElementById("sync-dot"),
+        syncStatus: document.getElementById("sync-status"),
+        statCount: document.getElementById("stat-count"),
+        statAvg: document.getElementById("stat-avg"),
+        statSync: document.getElementById("stat-sync"),
+        movieGrid: document.getElementById("movie-grid"),
+        modalWrap: document.getElementById("modal-wrap"),
+        closeModal: document.getElementById("close-modal"),
+        modalTitle: document.getElementById("modal-title"),
+        modalDirector: document.getElementById("modal-director"),
+        modalCast: document.getElementById("modal-cast"),
+        modalRuntime: document.getElementById("modal-runtime"),
+        modalLanguages: document.getElementById("modal-languages"),
+        modalAwards: document.getElementById("modal-awards"),
+        modalRaw: document.getElementById("modal-raw")
+      };
+
+      function formatSyncTime(msValue) {
+        if (!msValue) return "never";
+        return new Date(msValue).toLocaleTimeString();
+      }
+
+      function normalize(item) {
+        const details = item.metadata?.content_details || {};
+        const cast = item.metadata?.cast_and_crew || {};
+        const release = item.metadata?.release_and_availability || {};
+        const tech = item.metadata?.technical_and_experience || {};
+        const social = item.metadata?.social_and_discovery || {};
+        const ratings = social.ratings_reviews || {};
+
+        return {
+          id: item.content_id,
+          title: item.title || "Untitled",
+          shortDescription: details.short_description || "",
+          longDescription: details.long_description || "",
+          genres: Array.isArray(details.genre) ? details.genre : [],
+          runtime: release.run_time || "Unknown",
+          releaseDate: release.release_date || "",
+          year: release.release_date ? Number(release.release_date.slice(0, 4)) : null,
+          director: cast.director || "Unknown",
+          actors: Array.isArray(cast.actors) ? cast.actors : [],
+          imdbScore: Number(ratings.imdb_score || 0),
+          rtScore: ratings.rotten_tomatoes || "N/A",
+          posterUrl: tech.key_art_url || "",
+          languages: Array.isArray(tech.language_options) ? tech.language_options : [],
+          awards: Array.isArray(social.awards) ? social.awards : [],
+          raw: item
+        };
+      }
+
+      function applyFilters() {
+        const q = state.query.toLowerCase();
+        state.filteredItems = state.viewItems.filter((item) => {
+          const searchable = [
+            item.title,
+            item.shortDescription,
+            item.longDescription,
+            item.director,
+            item.actors.join(" ")
+          ]
+            .join(" ")
+            .toLowerCase();
+          const genreMatch =
+            state.genre === "All" || item.genres.includes(state.genre);
+          const ratingMatch = item.imdbScore >= state.minRating;
+          const queryMatch = q.length === 0 || searchable.includes(q);
+          return queryMatch && genreMatch && ratingMatch;
+        });
+
+        state.filteredItems.sort((a, b) => b.imdbScore - a.imdbScore);
+      }
+
+      function renderGenreOptions() {
+        const genres = new Set(["All"]);
+        state.viewItems.forEach((item) => {
+          item.genres.forEach((genre) => genres.add(genre));
+        });
+
+        const options = Array.from(genres.values());
+        els.genre.innerHTML = options
+          .map((genre) => `<option value="${genre}">${genre}</option>`)
+          .join("");
+        els.genre.value = options.includes(state.genre) ? state.genre : "All";
+        state.genre = els.genre.value;
+      }
+
+      function renderStats() {
+        els.statCount.textContent = String(state.filteredItems.length);
+        const average =
+          state.filteredItems.reduce((sum, item) => sum + item.imdbScore, 0) /
+          (state.filteredItems.length || 1);
+        els.statAvg.textContent = average.toFixed(1);
+        els.statSync.textContent = formatSyncTime(state.lastSyncMs);
+      }
+
+      function renderCards() {
+        if (state.filteredItems.length === 0) {
+          els.movieGrid.innerHTML =
+            '<div class="empty">No records match the current filters.</div>';
+          return;
+        }
+
+        els.movieGrid.innerHTML = state.filteredItems
+          .map(
+            (item) => `
+            <article class="card">
+              <img
+                class="poster"
+                src="${item.posterUrl}"
+                alt="${item.title} poster"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+              />
+              <section class="card-body">
+                <div class="title-row">
+                  <h3 class="title">${item.title}</h3>
+                  <span class="rating"><span class="star">★</span> ${item.imdbScore.toFixed(1)}</span>
+                </div>
+                <div class="meta">${item.year || "Unknown year"} · ${item.runtime} · RT ${item.rtScore}</div>
+                <div class="chips">
+                  ${item.genres.map((genre) => `<span class="chip">${genre}</span>`).join("")}
+                </div>
+                <div class="description">${item.shortDescription}</div>
+                <div class="card-actions">
+                  <button class="link-btn" type="button" data-open-id="${item.id}">
+                    View details
+                  </button>
+                </div>
+              </section>
+            </article>
+          `
+          )
+          .join("");
+      }
+
+      function openModal(itemId) {
+        const item = state.viewItems.find((entry) => entry.id === itemId);
+        if (!item) return;
+        state.selectedId = itemId;
+        els.modalTitle.textContent = `${item.title} (${item.year || "n/a"})`;
+        els.modalDirector.textContent = item.director;
+        els.modalCast.textContent = item.actors.join(", ");
+        els.modalRuntime.textContent = item.runtime;
+        els.modalLanguages.textContent = item.languages.join(", ");
+        els.modalAwards.textContent = item.awards.join(" | ");
+        els.modalRaw.textContent = JSON.stringify(item.raw, null, 2);
+        els.modalWrap.classList.add("open");
+        els.modalWrap.setAttribute("aria-hidden", "false");
+      }
+
+      function closeModal() {
+        state.selectedId = null;
+        els.modalWrap.classList.remove("open");
+        els.modalWrap.setAttribute("aria-hidden", "true");
+      }
+
+      function renderAll() {
+        applyFilters();
+        renderStats();
+        renderCards();
+      }
+
+      async function fetchContent() {
+        els.syncDot.classList.remove("ok");
+        els.syncStatus.textContent = "Syncing from database...";
+        try {
+          const response = await fetch("/api/content", { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const payload = await response.json();
+          const items = Array.isArray(payload.items) ? payload.items : [];
+          const serialized = JSON.stringify(items);
+          const changed = serialized !== state.lastSerialized;
+
+          state.rawItems = items;
+          state.viewItems = items.map(normalize);
+          state.lastSerialized = serialized;
+          state.lastSyncMs = Date.now();
+
+          renderGenreOptions();
+          renderAll();
+
+          els.syncDot.classList.add("ok");
+          els.syncStatus.textContent = changed
+            ? `Synced ${items.length} item(s). Changes detected.`
+            : `Synced ${items.length} item(s). No changes.`;
+
+          if (state.selectedId) {
+            openModal(state.selectedId);
+          }
+        } catch (error) {
+          els.syncStatus.textContent = `Sync failed: ${error.message}`;
+        }
+      }
+
+      function bindEvents() {
+        els.search.addEventListener("input", (event) => {
+          state.query = event.target.value.trim();
+          renderAll();
+        });
+
+        els.genre.addEventListener("change", (event) => {
+          state.genre = event.target.value;
+          renderAll();
+        });
+
+        els.minRating.addEventListener("input", (event) => {
+          state.minRating = Number(event.target.value || 0);
+          renderAll();
+        });
+
+        els.refreshNow.addEventListener("click", () => {
+          fetchContent();
+        });
+
+        els.movieGrid.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-open-id]");
+          if (!button) return;
+          openModal(button.dataset.openId);
+        });
+
+        els.closeModal.addEventListener("click", closeModal);
+        els.modalWrap.addEventListener("click", (event) => {
+          if (event.target === els.modalWrap) {
+            closeModal();
+          }
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeModal();
+        });
+      }
+
+      function init() {
+        bindEvents();
+        fetchContent();
+        setInterval(fetchContent, 10000);
+      }
+
+      init();
+    </script>
+  </body>
+</html>
