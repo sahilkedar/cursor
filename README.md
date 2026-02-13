@@ -3,8 +3,10 @@
 This app now runs with a real backend and database:
 
 - **Backend:** Node.js + Express
-- **Database:** SQLite (`data/imdb.db`)
+- **Database:** SQLite (`data/imdb.db`, powered by `sql.js`)
 - **Frontend:** HTML/CSS/JS calling `/api/content`
+
+No native database compilation is required, so this works on current Node versions (including Node 22).
 
 The Mission: Impossible JSON document is seeded into the database on first run.
 

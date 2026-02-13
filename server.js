@@ -1,14 +1,14 @@
 const fs = require("fs");
 const path = require("path");
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
+const initSqlJs = require("sql.js");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const DB_PATH = path.join(__dirname, "data", "imdb.db");
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-const db = new sqlite3.Database(DB_PATH);
+let db;
 
 const seedShortDescription =
   "Ethan Hunt and his IMF team must track down a terrifying new weapon " +
@@ -28,39 +28,71 @@ const seedLongDescription = [
 
 app.use(express.json({ limit: "1mb" }));
 
+function persistDb() {
+  const data = db.export();
+  fs.writeFileSync(DB_PATH, Buffer.from(data));
+}
+
+async function openDatabase() {
+  const SQL = await initSqlJs();
+  if (fs.existsSync(DB_PATH)) {
+    const raw = fs.readFileSync(DB_PATH);
+    db = new SQL.Database(raw);
+  } else {
+    db = new SQL.Database();
+    persistDb();
+  }
+}
+
 function run(sql, params = []) {
   return new Promise((resolve, reject) => {
-    db.run(sql, params, function onRun(error) {
-      if (error) {
-        reject(error);
-        return;
+    try {
+      const stmt = db.prepare(sql);
+      stmt.bind(params);
+      while (stmt.step()) {
+        // Run through statement until completion.
       }
-      resolve(this);
-    });
+      stmt.free();
+      const rowsModified = db.getRowsModified();
+      persistDb();
+      resolve({ rowsModified });
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 
 function get(sql, params = []) {
   return new Promise((resolve, reject) => {
-    db.get(sql, params, (error, row) => {
-      if (error) {
-        reject(error);
-        return;
+    try {
+      const stmt = db.prepare(sql);
+      stmt.bind(params);
+      let row = null;
+      if (stmt.step()) {
+        row = stmt.getAsObject();
       }
+      stmt.free();
       resolve(row);
-    });
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 
 function all(sql, params = []) {
   return new Promise((resolve, reject) => {
-    db.all(sql, params, (error, rows) => {
-      if (error) {
-        reject(error);
-        return;
+    try {
+      const stmt = db.prepare(sql);
+      stmt.bind(params);
+      const rows = [];
+      while (stmt.step()) {
+        rows.push(stmt.getAsObject());
       }
+      stmt.free();
       resolve(rows);
-    });
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 
@@ -297,7 +329,8 @@ app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-initializeDatabase()
+openDatabase()
+  .then(() => initializeDatabase())
   .then(() => {
     app.listen(PORT, () => {
       console.log(`IMDb-like app listening on http://localhost:${PORT}`);
@@ -310,6 +343,9 @@ initializeDatabase()
   });
 
 process.on("SIGINT", () => {
-  db.close();
+  if (db) {
+    persistDb();
+    db.close();
+  }
   process.exit(0);
 });
